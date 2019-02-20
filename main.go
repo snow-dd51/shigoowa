@@ -10,6 +10,9 @@ import (
 )
 
 const (
+	// Userからとれないので残念ながら決め打ち
+	tweetTimeZone   = "UTC+9"
+	tweetTimeOffset = 9 * 60 * 60
 	timeStampFormat = "2006-01-02 15:04:05"
 	confPath        = "./auth.json"
 )
@@ -112,6 +115,16 @@ func (app *App) mainLoop() {
 		for i, v := range tl {
 			// v.Textは<文字数>byteで切られているので使ってはいけない罠
 			fmt.Printf("%d: %s\n%s\n%s\n", i, v.User.ScreenName, v.FullText, v.CreatedAt)
+			/*
+				タイムゾーン変換の実証コード
+				tt, err := v.CreatedAtTime()
+				if err != nil {
+					Debugf("tterr %v", err)
+				} else {
+					tzloc := time.FixedZone(tweetTimeZone, tweetTimeOffset)
+					Debugf("%s", tt.In(tzloc).Format(timeStampFormat))
+				}
+			*/
 			if app.TwProc.Match(v) {
 				newTweet := app.TwProc.Make(v)
 				if newTweet != "" {
@@ -158,7 +171,8 @@ func (p DevProc) Match(tw anaconda.Tweet) bool {
 	return m
 }
 func (p DevProc) Make(tw anaconda.Tweet) string {
-	return "やるぞ " + time.Now().Format(timeStampFormat)
+	return ""
+	//return "やるぞ " + time.Now().Format(timeStampFormat)
 }
 
 func (app *App) validateConf() bool {
