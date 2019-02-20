@@ -1,10 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
-	"io/ioutil"
+	"github.com/snow-dd51/shigoowa/conf"
+	"net/url"
 	"time"
 )
 
@@ -27,27 +27,33 @@ type App struct {
 	TwAPI        *anaconda.TwitterApi
 }
 
-type AppConf struct {
-	AccessToken    string `json:"access-token"`
-	AccessSecret   string `json:"access-secret"`
-	ConsumerKey    string `json:"consumer-key"`
-	ConsumerSecret string `json:"consumer-secret"`
+func Debugf(msg string, arg ...interface{}) {
+	a := make([]interface{}, 1)
+	a[0] = time.Now().Format(timeStampFormat)
+	a = append(a, arg)
+	fmt.Printf("[%s] "+msg+"\n", a...)
 }
 
 func NewApp(confpath string) (*App, error) {
-	content, err := ioutil.ReadFile(confpath)
+	ac := conf.NewAppConf()
+	err := ac.Read(confPath)
 	if err != nil {
 		return nil, err
 	}
-	conf := AppConf{}
-	err = json.Unmarshal(content, &conf)
+	api := anaconda.NewTwitterApiWithCredentials(
+		ac.AccessToken,
+		ac.AccessSecret,
+		ac.ConsumerKey,
+		ac.ConsumerSecret,
+	)
+	u, err := api.GetSelf(nil)
 	if err != nil {
 		return nil, err
 	}
-	api := anaconda.NewTwitterApiWithCredentials(conf.AccessToken, conf.AccessSecret, conf.ConsumerKey, conf.ConsumerSecret)
+	Debugf("authorized as %s\n", u.ScreenName)
 	return &App{
 		IsDebug:      true,
-		SleepSeconds: 3,
+		SleepSeconds: 61,
 		TwAPI:        api,
 	}, nil
 }
@@ -57,9 +63,34 @@ func (app *App) mainLoop() {
 		return
 	}
 	ln := 0
+	// 再起動に備えて開始地点は保存したい
+	lastStatusId := ""
 	for true {
-		fmt.Printf("[%s] Loop %d\n", time.Now().Format(timeStampFormat), ln)
+		reqv := url.Values{}
+		if lastStatusId != "" {
+			reqv.Add("since_id", lastStatusId)
+		}
+		reqv.Add("count", "20")
+		Debugf("Loop %d", ln)
 		ln++
+		tl, err := app.TwAPI.GetHomeTimeline(reqv)
+		if err != nil {
+			Debugf("%v", err)
+			break
+		}
+		for i, v := range tl {
+			// v.Textは<文字数>byteで切られているので使ってはいけない罠
+			fmt.Printf("%d: %s\n%s\n%s\n", i, v.User.ScreenName, v.FullText, v.CreatedAt)
+		}
+		if len(tl) > 0 {
+			lastStatusId = tl[0].IdStr
+
+			Debugf("%v", lastStatusId)
+		}
+		// ここで処理する
+		if lastStatusId == "" {
+			break
+		}
 		time.Sleep(time.Duration(app.SleepSeconds) * time.Second)
 	}
 }
