@@ -12,6 +12,8 @@ type AppConf struct {
 	ConsumerKey    string `json:"consumer-key"`
 	ConsumerSecret string `json:"consumer-secret"`
 	LastStatusID   string `json:"last-status-id"`
+	IsProd         bool   `json:"is-production"`
+	SleepSeconds   int    `json:"sleep-seconds"`
 }
 
 func NewAppConf() *AppConf {
