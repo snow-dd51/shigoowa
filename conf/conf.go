@@ -11,6 +11,7 @@ type AppConf struct {
 	AccessSecret   string `json:"access-secret"`
 	ConsumerKey    string `json:"consumer-key"`
 	ConsumerSecret string `json:"consumer-secret"`
+	LastStatusID   string `json:"last-status-id"`
 }
 
 func NewAppConf() *AppConf {

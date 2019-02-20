@@ -25,6 +25,7 @@ type App struct {
 	IsDebug      bool
 	SleepSeconds int
 	TwAPI        *anaconda.TwitterApi
+	Conf         *conf.AppConf
 }
 
 func Debugf(msg string, arg ...interface{}) {
@@ -55,6 +56,7 @@ func NewApp(confpath string) (*App, error) {
 		IsDebug:      true,
 		SleepSeconds: 61,
 		TwAPI:        api,
+		Conf:         ac,
 	}, nil
 }
 
@@ -64,7 +66,7 @@ func (app *App) mainLoop() {
 	}
 	ln := 0
 	// 再起動に備えて開始地点は保存したい
-	lastStatusId := ""
+	lastStatusId := app.Conf.LastStatusID
 	for true {
 		reqv := url.Values{}
 		if lastStatusId != "" {
@@ -84,7 +86,8 @@ func (app *App) mainLoop() {
 		}
 		if len(tl) > 0 {
 			lastStatusId = tl[0].IdStr
-
+			app.Conf.LastStatusID = lastStatusId
+			app.Conf.Write(confPath)
 			Debugf("%v", lastStatusId)
 		}
 		// ここで処理する
