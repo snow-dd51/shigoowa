@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/snow-dd51/shigoowa/conf"
@@ -9,13 +10,14 @@ import (
 	"regexp"
 )
 
-const (
-	confPath = "./auth.json"
+var (
+	confPathp = flag.String("conf", "./auth.json", "config file path")
 )
 
 func main() {
+	flag.Parse()
 	ac := conf.NewAppConf()
-	err := ac.Read(confPath)
+	err := ac.Read(*confPathp)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return
@@ -62,5 +64,5 @@ func main() {
 	fmt.Printf("Auth : %s (%s)\n", value["screen_name"][0], value["user_id"][0])
 	ac.AccessToken = cred.Token
 	ac.AccessSecret = cred.Secret
-	ac.Write(confPath)
+	ac.Write(*confPathp)
 }

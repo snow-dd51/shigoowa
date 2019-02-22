@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/snow-dd51/shigoowa/conf"
@@ -14,12 +15,18 @@ const (
 	tweetTimeZone   = "UTC+9"
 	tweetTimeOffset = 9 * 60 * 60
 	timeStampFormat = "2006-01-02 15:04:05"
-	confPath        = "./auth.json"
+)
+
+var (
+	confPathp = flag.String("conf", "./auth.json", "config file path")
+	debugp    = flag.Bool("debug", false, "debug mode")
 )
 
 func main() {
-	app, err := NewApp(confPath)
+	flag.Parse()
+	app, err := NewApp(*confPathp)
 	if err != nil {
+		fmt.Printf("NewApp Error: %v", err)
 		return
 	}
 	app.mainLoop()
@@ -32,6 +39,7 @@ type App struct {
 	Conf         *conf.AppConf
 	TwProc       TweetProcessor
 	MyInfo       anaconda.User
+	ConfigPath   string
 }
 
 type TweetProcessor interface {
@@ -47,7 +55,7 @@ func Debugf(msg string, arg ...interface{}) {
 
 func NewApp(confpath string) (*App, error) {
 	ac := conf.NewAppConf()
-	err := ac.Read(confPath)
+	err := ac.Read(confpath)
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +63,9 @@ func NewApp(confpath string) (*App, error) {
 	if !ac.IsProd {
 		debug = true
 		Debugf("Debug Mode!")
+	} else if *debugp {
+		debug = true
+		Debugf("Debug Mode by flag!")
 	}
 	sleepSeconds := 61
 	if ac.SleepSeconds > 60 {
@@ -88,6 +99,7 @@ func NewApp(confpath string) (*App, error) {
 		Conf:         ac,
 		TwProc:       proc,
 		MyInfo:       u,
+		ConfigPath:   confpath,
 	}, nil
 }
 
@@ -155,7 +167,7 @@ func (app *App) mainLoop() {
 		if len(tl) > 0 {
 			lastStatusId = tl[0].IdStr
 			app.Conf.LastStatusID = lastStatusId
-			app.Conf.Write(confPath)
+			app.Conf.Write(app.ConfigPath)
 			Debugf("%v", lastStatusId)
 		}
 		if lastStatusId == "" {
