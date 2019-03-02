@@ -19,17 +19,46 @@ func main() {
 	ac := conf.NewAppConf()
 	err := ac.Read(*confPathp)
 	if err != nil {
-		fmt.Printf("%v\n", err)
-		return
+		fmt.Printf("the file %s is not present nor a valid json file.\ncreate a new config file.\n", *confPathp)
 	}
+	sc := bufio.NewScanner(os.Stdin)
 	if ac.ConsumerKey == "" {
 		fmt.Println("consumer-key is empty")
-		return
+		fmt.Print("input consumer-key: ")
+		ret := sc.Scan()
+		if !ret {
+			fmt.Println("input error")
+			return
+		}
+		ck := string(sc.Bytes())
+		if ck == "" {
+			fmt.Println("consumer-key is empty")
+			return
+		}
+		ac.ConsumerKey = ck
+	} else {
+		fmt.Printf("consumer-key is %s\n", ac.ConsumerKey)
 	}
 	if ac.ConsumerSecret == "" {
 		fmt.Println("consumer-secret is empty")
-		return
+		fmt.Print("input consumer-secret: ")
+		ret := sc.Scan()
+		if !ret {
+			fmt.Println("input error")
+			return
+		}
+		cs := string(sc.Bytes())
+		if cs == "" {
+			fmt.Println("consumer-secret is empty")
+			return
+		}
+		ac.ConsumerSecret = (cs)
+	} else {
+		fmt.Println("consumer-secret is set")
 	}
+	// ここまできたら途中経過保存してもよくない？
+	// deferされたときのacの内容については要確認
+	defer ac.Write(*confPathp)
 	api := anaconda.NewTwitterApiWithCredentials("", "", ac.ConsumerKey, ac.ConsumerSecret)
 	url, tmpCred, err := api.AuthorizationURL("")
 	if err != nil {
@@ -38,7 +67,6 @@ func main() {
 	}
 	fmt.Printf("URL: %s\n", url)
 	fmt.Print("Input PIN: ")
-	sc := bufio.NewScanner(os.Stdin)
 	ret := sc.Scan()
 	if !ret {
 		fmt.Println("scannning PIN error")
@@ -64,5 +92,4 @@ func main() {
 	fmt.Printf("Auth : %s (%s)\n", value["screen_name"][0], value["user_id"][0])
 	ac.AccessToken = cred.Token
 	ac.AccessSecret = cred.Secret
-	ac.Write(*confPathp)
 }
